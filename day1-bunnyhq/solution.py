@@ -238,7 +238,7 @@ def determineFirstIntersection(turnSteps,
 	if not collided:
 		raise RuntimeError("No intersections found with given input path.")
 
-	return baseVector.xcomponent + baseVector.ycomponent
+	return abs(baseVector.xcomponent) + abs(baseVector.ycomponent)
 
 def determineBlocksAway(turnSteps, startPosition=None, startDirection=None):
 	"""Return the number of blocks away from starting position after turns.
@@ -270,7 +270,7 @@ def determineBlocksAway(turnSteps, startPosition=None, startDirection=None):
 		print("Facing {}".format(direction.name))
 		print("Base vector: {}".format(baseVector))
 			
-	return baseVector.xcomponent + baseVector.ycomponent
+	return abs(baseVector.xcomponent) + abs(baseVector.ycomponent)
 		
 		
 def _findDirectionAfterTurn(direction, turn):
