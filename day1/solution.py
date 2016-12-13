@@ -1,9 +1,12 @@
 #!/usr/bin/python3
 import sys
+import math
 from enum import IntEnum, Enum
+from collections import defaultdict
 
 
 FILENAME = "input.txt"
+CONSOLE_SEPARATOR = "============================"
 
 
 class Direction(IntEnum):
@@ -82,12 +85,59 @@ class Vector:
 	endPoint -- the end point of the vector
 	"""
 
-	def __init__(self, startPoint, xdelta=0, ydelta=0):
+	def __init__(self, startPoint, xdelta=None, ydelta=None, endPoint=None):
 		self.startPoint = startPoint
+
+		if xdelta is not None or ydelta is not None:
+			if xdelta is None:
+				xdelta = 0
+			if ydelta is None:
+				ydelta = 0
+			endPoint = Point(self.startPoint.x + xdelta,
+							 self.startPoint.y + ydelta)
+		elif endPoint is not None:
+			xdelta = endPoint.x - self.startPoint.x
+			ydelta = endPoint.y - self.startPoint.y
+
 		self.xcomponent = xdelta
 		self.ycomponent = ydelta
-		self.endPoint = Point(self.startPoint.x + xdelta, 
-							  self.startPoint.y + ydelta)
+		self.endPoint = endPoint
+
+	@property
+	def points(self):
+		"""Generate the points along the line of the vector.
+		
+		Assumes that the vector will only have an xcomponent or only a
+		ycomponent. Otherwise, behavior is undefined. Will exclude
+		the start point.
+		"""
+
+		# signage: We need to modify the range used based on the sign
+		# of the delta. If we have a negative delta, we must use a
+		# step of -1. We must also subtract 1 from the start point
+		# along the axis of the delta to "ignore" the start point
+		# we must also add/subtract 1 to the end of the range so
+		# that we consider the last point reached.
+		#
+		# Note that only one of the ranges should be iterated over
+		# since only one of self.xcomponent or self.ycomponent
+		# should be non-zero when calling this method.
+
+		for x in range(
+				int(self.startPoint.x + 1*math.copysign(1, self.xcomponent)),
+				int(self.startPoint.x 
+					+ self.xcomponent
+					+ 1*math.copysign(1, self.xcomponent)),
+				int(math.copysign(1, self.xcomponent))):
+			yield Point(x, self.startPoint.y)
+
+		for y in range(
+				int(self.startPoint.y + 1*math.copysign(1, self.ycomponent)),
+				int(self.startPoint.y 
+					+ self.ycomponent
+					+ 1*math.copysign(1, self.ycomponent)),
+				int(math.copysign(1, self.ycomponent))):
+			yield Point(self.startPoint.x, y)
 
 	def createVectorFromDirection(startPoint, direction, steps):
 		xdelta = 0
@@ -133,6 +183,63 @@ class Vector:
 		return str(self)
 
 
+def determineFirstIntersection(turnSteps,
+							   startPosition=None,
+							   startDirection=None):
+	"""Return how far away the first intersection is from where we start.
+
+	Algorithm: keep track of all points visited in an on-line manner.
+	Use a dictionary for this. We can get the points visited along each
+	vector and as soon as we hit a collision, we have our final point.
+	"""
+	if startPosition is None:
+		startPosition = Point(0, 0)
+
+	if startDirection is None:
+		startDirection = Direction.North
+
+	direction = startDirection
+	baseVector = Vector(startPosition, 0, 0)
+	visited = defaultdict(bool)
+	visited[(0, 0)] = True
+	collided = False
+
+	print("Facing North")
+
+	for turnStep in turnSteps:
+		print(CONSOLE_SEPARATOR)
+
+		direction = _findDirectionAfterTurn(direction, turnStep.turn)
+		tempVector = Vector.createVectorFromDirection(
+			baseVector.endPoint,
+			direction,
+			turnStep.steps)
+
+		print("Input: {}".format(turnStep))
+		print("Facing {}".format(direction.name))
+
+		for point in tempVector.points:
+			if not visited[(point.x, point.y)]:
+				visited[(point.x, point.y)] = True
+				print("Visiting {}".format(point))
+			else:
+				collided = True
+				print("Collided at point {}".format(point))
+				break
+		
+		if collided:
+			baseVector = Vector(baseVector.startPoint, endPoint=point)
+			break
+		else:
+			baseVector += tempVector
+			
+		print("Base vector: {}".format(baseVector))
+
+	if not collided:
+		raise RuntimeError("No intersections found with given input path.")
+
+	return baseVector.xcomponent + baseVector.ycomponent
+
 def determineBlocksAway(turnSteps, startPosition=None, startDirection=None):
 	"""Return the number of blocks away from starting position after turns.
 
@@ -152,7 +259,7 @@ def determineBlocksAway(turnSteps, startPosition=None, startDirection=None):
 	print("Facing North")
 
 	for turnStep in turnSteps:
-		print("============================")
+		print(CONSOLE_SEPARATOR)
 		direction = _findDirectionAfterTurn(direction, turnStep.turn)
 		tempVector = Vector.createVectorFromDirection(
 			baseVector.endPoint,
@@ -177,8 +284,11 @@ def _findDirectionAfterTurn(direction, turn):
 if __name__ == "__main__":
 	with open(FILENAME) as inputFile:
 		rawInput = inputFile.readline()
-		inputTurnSteps = map(lambda raw: TurnStep(raw.strip()),
-							 rawInput.split(","))
+		inputTurnSteps = list(map(lambda raw: TurnStep(raw.strip()),
+							 rawInput.split(",")))
 
 	print("We are {} blocks away from starting point.".format(
 		determineBlocksAway(inputTurnSteps)))
+
+	print("The first intersection is {} blocks away from starting point."
+		  .format(determineFirstIntersection(inputTurnSteps)))
