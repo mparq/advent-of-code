@@ -32,13 +32,18 @@ class Numpad(object):
 
 	coordToButton = {coord: button for button, coord in buttonToCoord.items()}
 
-	def _forceBound(self, coord):
-		raise NotImplementedError()
+	def isInBounds(self, coord):
+		return coord in self.coordToButton
 		
 	def moveFromButton(self, button, move):
 		buttonCoord = self.buttonToCoord[button]
 		delta = Numpad.deltas[move]
-		newCoord = self._forceBound((delta[0] + buttonCoord[0], delta[1] + buttonCoord[1]))
+		newCoord = (delta[0] + buttonCoord[0], delta[1] + buttonCoord[1])
+
+		# reset coord if the move pushes it out of bounds of the numpad
+		if not self.isInBounds(newCoord):
+			newCoord = buttonCoord
+
 		return self.coordToButton[newCoord]
 
 
@@ -64,6 +69,27 @@ class SimpleNumpad(Numpad):
 			min(2, max(0, coord[1])))
 
 
+class ComplicatedNumpad(Numpad):
+
+	buttonToCoord = {
+		1: (2, 0),
+		2: (1, 1),
+		3: (2, 1),
+		4: (3, 1),
+		5: (0, 2),
+		6: (1, 2),
+		7: (2, 2),
+		8: (3, 2),
+		9: (4, 2),
+		"A": (1, 3),
+		"B": (2, 3),
+		"C": (3, 3),
+		"D": (2, 4)
+	}
+
+	coordToButton = {coord: button for button, coord in buttonToCoord.items()}
+
+
 def findButton(numpad, startButton, moves):
 	button = startButton
 	for move in moves:
@@ -85,4 +111,4 @@ def findButtons(moveLines, numpad=None, startButton=5):
 
 if __name__ == "__main__":
 	with open("input.txt") as inputFile:
-		findButtons(map(lambda line: line.strip(), inputFile.readlines()))
+		findButtons(map(lambda line: line.strip(), inputFile.readlines()), numpad=ComplicatedNumpad())
