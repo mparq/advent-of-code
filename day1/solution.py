@@ -1,24 +1,40 @@
 #!/usr/bin/python3
 import sys
+from enum import IntEnum, Enum
+
 
 FILENAME = "input.txt"
 
 
-class Turn:
-	"""Turn represents an input of our algorithm.
+class Direction(IntEnum):
+	North = 0
+	East = 1
+	South = 2
+	West = 3
+
+
+class Turn(Enum):
+	R = 0
+	L = 1
+	Right = 0
+	Left = 1
+	
+
+class TurnStep:
+	"""TurnStep represents an input of our algorithm.
 
 	Instance variables:
-	direction -- direction of the turn relative to facing direction
+	turn -- direction of the turn relative to facing direction
 	steps -- number of steps taken after the turn
 	"""
 
-	def __init__(self, rawTurn):
-		self.direction = rawTurn[0]
-		self.steps = int(rawTurn[1:])
+	def __init__(self, rawTurnStep):
+		self.turn = Turn[rawTurnStep[0]]
+		self.steps = int(rawTurnStep[1:])
 
 	def __str__(self):
-		return "Turn: direction - {0}, steps - {1}".format(self.direction,
-													self.steps)
+		return "TurnStep: turn - {0}, steps - {1}".format(self.turn,
+														  self.steps)
 
 	def __repr__(self):
 		return str(self)	
@@ -30,6 +46,9 @@ class Point:
 	Instance variables:
 	x -- x coordinate
 	y -- y coordinate
+
+	Instance methods:
+	__eq__ -- Append given vector to instance vector to create new.
 	"""
 	def __init__(self, x, y):
 		self.x = x
@@ -52,9 +71,14 @@ class Vector:
 
 	VectorA + VectorB = VectorC where VectorC has start point of VectorA
 	and end point of VectorB if VectorA endpoint = VectorB startpoint
+
+	Class methods:
+	createVectorFromDirection -- creates a vector given facing direction.
 	
 	Instance variables:
 	startPoint -- the starting point of the vector
+	xcomponent -- the delta along X axis between start and end point
+	ycomponent -- the delta along Y axis between start and end point
 	endPoint -- the end point of the vector
 	"""
 
@@ -64,6 +88,18 @@ class Vector:
 		self.ycomponent = ydelta
 		self.endPoint = Point(self.startPoint.x + xdelta, 
 							  self.startPoint.y + ydelta)
+
+	def createVectorFromDirection(startPoint, direction, steps):
+		xdelta = 0
+		ydelta = 0
+
+		if direction is Direction.North or direction is Direction.South:
+			ydelta = steps if direction is Direction.North else -steps
+
+		elif direction is Direction.East or direction is Direction.West:
+			xdelta = steps if direction is Direction.East else -steps
+
+		return Vector(startPoint, xdelta=xdelta, ydelta=ydelta)
 		
 	def concatenate(self, vectorB):
 		"""Return the vector produced by appending given vector to this one.
@@ -84,6 +120,9 @@ class Vector:
 			self.xcomponent + vectorB.xcomponent,
 			self.ycomponent + vectorB.ycomponent)
 
+	def __add__(self, vectorB):
+		return self.concatenate(vectorB)
+
 	def __str__(self):
 		return "Vector: ({start.x}, {start.y}) {x:+}x {y:+}y".format(
 			start=self.startPoint,
@@ -94,10 +133,52 @@ class Vector:
 		return str(self)
 
 
+def determineBlocksAway(turnSteps, startPosition=None, startDirection=None):
+	"""Return the number of blocks away from starting position after turns.
+
+	Solve part one of the puzzle asking for the number of blocks away from
+	the starting position we end up from after taking all of the steps
+	from the input.
+	"""
+	if startPosition is None:
+		startPosition = Point(0, 0)
+
+	if startDirection is None:
+		startDirection = Direction.North
+
+	direction = startDirection
+	baseVector = Vector(startPosition, 0, 0)
+
+	print("Facing North")
+
+	for turnStep in turnSteps:
+		print("============================")
+		direction = _findDirectionAfterTurn(direction, turnStep.turn)
+		tempVector = Vector.createVectorFromDirection(
+			baseVector.endPoint,
+			direction,
+			turnStep.steps)
+		baseVector += tempVector
+		print("Input: {}".format(turnStep))
+		print("Facing {}".format(direction.name))
+		print("Base vector: {}".format(baseVector))
+			
+	return baseVector.xcomponent + baseVector.ycomponent
+		
+		
+def _findDirectionAfterTurn(direction, turn):
+	if turn is Turn.Right:
+		return Direction((direction + 1) % 4)
+	if turn is Turn.Left:
+		return Direction((direction - 1) % 4)
+	raise ValueError("Given direction must be left or right")
+
+
 if __name__ == "__main__":
 	with open(FILENAME) as inputFile:
 		rawInput = inputFile.readline()
-		inputTurns = map(lambda raw: Turn(raw.strip()), rawInput.split(","))
+		inputTurnSteps = map(lambda raw: TurnStep(raw.strip()),
+							 rawInput.split(","))
 
-	for turn in inputTurns:
-		print(turn)
+	print("We are {} blocks away from starting point.".format(
+		determineBlocksAway(inputTurnSteps)))
