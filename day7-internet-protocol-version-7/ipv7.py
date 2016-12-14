@@ -31,4 +31,4 @@ def findTLSSupported(ipAddresses):
 
 if __name__ == "__main__":
 	with open(FILENAME) as inputFile:
-		findTLSupported(line.strip() for line in inputFile)
+		findTLSSupported(line.strip() for line in inputFile)
