@@ -6,6 +6,11 @@ Part One
 Need to parse input instructions into commands. These commands will be
 fed to an object representing the display screen (of class TinyLED).abs
 This object will keep track of the screen's display state.
+
+Part Two
+--
+Just print out output and inspect. Letters will be displayed on the LED
+screen.
 """
 
 
