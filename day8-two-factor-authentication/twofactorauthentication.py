@@ -9,6 +9,8 @@ This object will keep track of the screen's display state.
 """
 
 
+SCREEN_WIDTH = 50
+SCREEN_HEIGHT = 6
 FILENAME = "input.txt"
 
 
@@ -94,7 +96,43 @@ class TinyLED:
             print(" ".join("#" if cell else "." for cell in row))
 
 
+def find_number_of_on_pixels(commands):
+    """Return number of ON pixels after parsing commands for screen.abs
+
+    Assume that all commands are given in valid format.
+
+    Commands are in form:
+    rect AxB -> led.rect(A, B)
+    rotate row y=A by B -> led.rotate_row(A, B)
+    rotate column x=A by B -> led.rotate_column(A, B)
+    """
+    led = TinyLED(SCREEN_WIDTH, SCREEN_HEIGHT)
+    for command in commands:
+        split = command.split()
+        method = split[0]
+        if method == "rect":
+            # split[1] -> AxB
+            width, height = (int(num) for num in split[1].split("x"))
+            led.rect(width, height)
+        if method == "rotate":
+            # split[2] -> y=A | x=A
+            # just care about everything after =
+            index = int(split[2][2:])
+            # split[4] -> B
+            # shift amount
+            shift = int(split[4])
+            # split[1] -> row|column
+            row_or_column = split[1]
+            if row_or_column == "row":
+                led.rotate_row(index, shift)
+            elif row_or_column == "column":
+                led.rotate_column(index, shift)
+        print(command)
+        led.print_screen()
+    return led.num_pixels_on
+
+
 if __name__ == "__main__":
     with open(FILENAME) as inputFile:
-        for line in inputFile:
-            print(line.strip())
+        print("{} Pixels are ON.".format(
+            find_number_of_on_pixels(line.strip() for line in inputFile)))
